@@ -24,8 +24,8 @@ search.str <- "eco-hydrology OR ecohydrology OR hydroecology OR hydro-ecology OR
 
 # output directory: save to Dropbox, not git repository, so it's automatically backed up
 # this is also where authentication info is stored
-out.dir <- "C:/Users/Sam/Dropbox/Work/Twitter/EcohydroStream/"
-#out.dir <- "D:/Dropbox/Work/Twitter/EcohydroStream/"
+#out.dir <- "C:/Users/Sam/Dropbox/Work/Twitter/EcohydroStream/"
+out.dir <- "D:/Dropbox/Work/Twitter/EcohydroStream/"
 
 # path to save output data
 path.out <- paste0(out.dir, "TweetsOut.sqlite")
@@ -57,8 +57,8 @@ options(httr_oauth_cache=T)   # this will store authentication as a local file
 setup_twitter_oauth(auth.t[1], auth.t[2], auth.t[3], auth.t[4])
 
 # get today/yesterday dates
-date_start <- as.Date(ymd("2017-05-15"))  # this date is included
-date_end <- as.Date(ymd("2017-05-17"))    # this date is not included
+date_start <- as.Date(ymd("2017-05-14"))  # this date is included
+date_end <- as.Date(ymd("2017-05-18"))    # this date is not included
 
 # search twitter!
 tweets <- searchTwitter(search.str, 
@@ -101,23 +101,50 @@ locations <- unique(df.users$location)
 geo.out <- geocode(locations, source="google", output="all")
 
 ## filter output
-# status check: did geocode find a location?
-check.status <- sapply(geo.out, function(x) x["status"]=="OK" & length(x["status"])>0)
-check.status[is.na(check.status)] <- F
-geo.out <- geo.out[check.status]
-locations <- locations[check.status]
-
-# status check: is location ambiguous?
-check.ambig <- sapply(lapply(geo.out, lapply, length), function(x) x["results"]=="1")
-geo.out <- geo.out[check.ambig]
-locations <- locations[check.ambig]
-
-## make final locations data frame
-df.locations <- data.frame(
-  location = locations,
-  lat.location = sapply(geo.out, function(x) x["results"]$results[[1]]$geometry$location$lat),
-  lon.location = sapply(geo.out, function(x) x["results"]$results[[1]]$geometry$location$lng)
-)
+if (length(locations)>1){
+  # status check: did geocode find a location?
+  check.status <- sapply(geo.out, function(x) x["status"]=="OK" & length(x["status"])>0)
+  check.status[is.na(check.status)] <- F
+  geo.out <- geo.out[check.status]
+  locations <- locations[check.status]
+  
+  # status check: is location ambiguous?
+  check.ambig <- sapply(lapply(geo.out, lapply, length), function(x) x["results"]=="1")
+  geo.out <- geo.out[check.ambig]
+  locations <- locations[check.ambig]
+  
+  ## make final locations data frame
+  df.locations <- data.frame(
+    location = locations,
+    lat.location = sapply(geo.out, function(x) x["results"]$results[[1]]$geometry$location$lat),
+    lon.location = sapply(geo.out, function(x) x["results"]$results[[1]]$geometry$location$lng),
+    formatted_address = sapply(geo.out, function(x) x["results"]$results[[1]]$formatted_address)
+  )
+  
+} else {
+  # status check: did geocode find a location?
+  check.status <- geo.out[[2]]=="OK"
+  check.status[is.na(check.status)] <- F
+  if (!check.status){
+    geo.out <- NULL
+    locations <- NULL
+  }
+  
+  # status check: is location ambiguous?
+  check.ambig <- lapply(geo.out, lapply, length)$results>=1
+  if (!check.ambig){
+    geo.out <- NULL
+    locations <- NULL
+  }
+  
+  ## make final locations data frame
+  df.locations <- data.frame(
+    location = locations,
+    lat.location = geo.out$results[[1]]$geometry$location$lat,
+    lon.location = geo.out$results[[1]]$geometry$location$lng,
+    formatted_address = geo.out$results[[1]]$formatted_address
+  )
+}
 
 # add location info back to user data frame
 df.users <- merge(df.users[c("location", "description", "screenName")], df.locations, by="location", all.x=T)

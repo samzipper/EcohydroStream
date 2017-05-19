@@ -35,7 +35,7 @@ df$created <- ymd_hms(df$created)
 df$DOY <- yday(df$created)
 df$Date <- as.Date(df$created)
 df.d <- summarize(group_by(df, Date),
-                  tweets = sum(is.finite(lat.location)))
+                  tweets = sum(is.finite(Date)))
 
 # print most recent tweet
 print(paste0("Last tweet: ", df$created[which.max(df$id)]))
