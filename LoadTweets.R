@@ -4,8 +4,11 @@
 
 rm(list=ls())
 
+# path to git directory
+git.dir <- "C:/Users/Sam/WorkGits/EcohydroStream/"
+
 # load packages
-require(twitteR)
+require(rtweet)
 require(lubridate)
 require(ggmap)
 require(stringr)
@@ -36,9 +39,9 @@ dbDisconnect(db)
 # plot of tweets by day
 df$created_at <- ymd_hms(df$created_at)
 df$DOY <- yday(df$created_at)
-df$Date <- as.Date(df$created_at, tz=Sys.timezone(location = TRUE))
+df$Date <- as.Date(df$created_at)
 df.d <- summarize(group_by(df, Date),
-                  tweets = sum(is.finite(lat.location)))
+                  tweets = sum(is.finite(created_at)))
 
 # list of missing days
 missing <- seq(df.d$Date[1], Sys.Date()-1, by="day")[!(seq(df.d$Date[1], Sys.Date()-1, by="day") %in% df.d$Date)]
@@ -49,13 +52,10 @@ print(missing)
 # print most recent tweet
 print(paste0("Last tweet: ", df$created_at[which.max(df$status_id)]))
 
-# bar plot: tweets by day
 p.bar.tweets.DOY <-
   ggplot(df.d, aes(x=Date, y=tweets)) +
   geom_bar(stat="identity") +
-  geom_hline(yintercept=0, color="gray65") +
-  labs(title=paste0(sum(df.d$tweets), " Ecohydro Tweets")) +
-  scale_y_continuous(name="# Tweets") +
+  labs(title=paste0(sum(df.d$tweets), " tweets")) +
   theme_bw() +
   theme(panel.grid=element_blank())
 p.bar.tweets.DOY

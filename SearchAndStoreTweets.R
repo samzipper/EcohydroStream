@@ -50,15 +50,16 @@ db <- dbConnect(RSQLite::SQLite(), path.out)
 df.in <- dbReadTable(db, "tweets")
 
 # read in token which was created with script rtweet_SetUpToken.R
-r.token <- readRDS(file.path(path.expand("~/"), "twitter_token_ecohydro.Rds"))
+r.token <- readRDS(file.path(out.dir, "twitter_token_ecohydro.Rds"))
 
 # search twitter!
-tweets <- search_tweets2(search.str,
-                         n=10000, 
-                         type="recent",
-                         include_rts=F,
-                         retryOnRateLimit=T,
-                         token=r.token)
+search.str <- search.str <- paste0("eco-hydrology OR ecohydrology OR hydroecology OR hydro-ecology OR #hydroecology OR #ecohydrology OR #ecohydro OR (ecology and (hydrology OR hydrogeology)) since:", as.character(date_yesterday), " until:", as.character(date_today))
+tweets <- search_tweets(search.str,
+                        n=10000, 
+                        type="recent",
+                        include_rts=F,
+                        retryOnRateLimit=T,
+                        token=r.token)
 
 # subset to yesterday only, just in case...
 df <- subset(tweets, created_at >= date_yesterday & created_at < date_today)
@@ -141,19 +142,8 @@ for (l in 1:length(locations)){
     # check if location not ambiguous
     check.ambig <- if (length(l.geo$results)==1) T else F
     
-    # check if location resolved to state level
-    #   acceptable google address component codes, from https://developers.google.com/maps/documentation/geocoding/intro
-    add.comp.state <- c("locality", "postal_code", "neighborhood", "park", "sublocality", "locality",
-                        paste0("administrative_area_level_", seq(1,5)))
-    add.comps <- unlist(l.geo$results[[1]]$address_components)
-    if (sum(add.comps[which(names(add.comps)=="types1")] %in% add.comp.state) > 0){
-      check.state <- T
-    } else {
-      check.state <- F
-    }
-    
     # figure out: is this a good geocode?
-    if (check.status & check.ambig & check.state){
+    if (check.status & check.ambig){
       success[l] <- T
       lat.location[l] <- l.geo$results[[1]]$geometry$location$lat
       lon.location[l] <- l.geo$results[[1]]$geometry$location$lng
