@@ -88,6 +88,8 @@ df.users <- df.users[df.users$location != "",]
 # replace % and # in user location with blank so geocode doesn't get messed up
 df.users$location <- gsub("%", " ",df.users$location)
 df.users$location <- gsub("#", " ",df.users$location)
+df.users$location <- gsub("$", " ",df.users$location)
+df.users$location <- gsub("^&", " ",df.users$location)
 
 # deal with emojis and other weird characters
 df.users$location <- iconv(df.users$location, "UTF-8", "ASCII", sub="")
